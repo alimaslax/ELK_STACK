@@ -5,43 +5,14 @@ var rp = require('request-promise');
 var data = [];
 
 
-var getCount = function(req) {
-  var url = 'http://35.196.134.152/search/crime/_count';
-  var url2 = 'http://35.196.134.152/search/crime/_search';
-  var query1 = {
-    "query": {
-      "constant_score": {
-        "filter": {
-          "bool": {
-            "must": [{
-              "term": {
-                "YEAR": "2018"
-              }
-            }]
-          }
-        }
-      }
-    }
-  };
-  var query2 = {
-    "size": 0,
-    "aggs": {
-      "sum": {
-        "terms": {
-          "field": req + ".keyword",
-          "size": 500
-        }
-      }
-    }
-  };
-  var query3 = '{ "size": 0, "aggs": { "sum": { "terms": { "field": "YEAR.keyword", "size":500 } } } }';
+var getCount = function(req, url) {
   var options = {
     method: 'POST',
     headers: {
       'content-type': 'application/json'
     },
     uri: url,
-    body: query1,
+    body: JSON.parse(req),
     json: true // Automatically stringifies the body to JSON
   };
   rp(options)
@@ -53,11 +24,8 @@ var getCount = function(req) {
     .catch(function(err) {
       console.log(err); // POST failed...
     });
-
-
 }
 
-//col -> null when counting arrays
 function getQuery(arr) {
   var must='';
   if (Array.isArray(arr)){
@@ -93,11 +61,10 @@ app.listen(3000, () => console.log('Example app listening on port 3000!'));
 // GET method route
 app.get('/', function(req, res) {
   var data = {term:"YEAR",data:"2017,2018"};
-  var data2 = {term:"DATS",data:"MOND"};
   var array = [];
   array.push(data);
-  array.push(data2);
-  console.log(getQuery(array));
+  var url = 'http://35.196.134.152/search/crime/_search';
+  getCount(getQuery(array),url);
 });
 
 // POST method route
