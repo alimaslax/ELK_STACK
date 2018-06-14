@@ -2,30 +2,16 @@ const express = require('express');
 const app = express();
 var rp_lib = require('request');
 var rp = require('request-promise');
-var data = [];
+var bodyParser = require('body-parser');
+app.use(bodyParser.json()); // support json encoded bodies
+app.use(bodyParser.urlencoded({ extended: true })); // support encoded bodies
 
-
-var getCount = function(req, url) {
-  var options = {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json'
-    },
-    uri: url,
-    body: JSON.parse(req),
-    json: true // Automatically stringifies the body to JSON
-  };
-  rp(options)
-    .then(function(parse) {
-      console.log(parse);
-      // data.push({[req]:parse.aggregations.sum.buckets});
-      // console.log(data);
-    })
-    .catch(function(err) {
-      console.log(err); // POST failed...
-    });
-}
-
+//enable cors
+app.use(function(req, res, next) {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+  next();
+});
 function getQuery(arr) {
   var must='';
   if (Array.isArray(arr)){
@@ -40,7 +26,7 @@ function getQuery(arr) {
           if(j!=array.length-1)
             temp+=',';
         }
-        must+='{ "bool": { "should": [ '+temp+'] } }';   
+        must+='{ "bool": { "should": [ '+temp+'] } }';
       }
       else{
         must+='{ "match" : { "'+arr[i]["term"]+'" : "'+arr[i]["data"]+'" } }';
@@ -60,17 +46,32 @@ app.listen(3000, () => console.log('Example app listening on port 3000!'));
 
 // GET method route
 app.get('/', function(req, res) {
-  var data = {term:"YEAR",data:"2017,2018"};
-  var array = [];
-  array.push(data);
-  var url = 'http://35.196.134.152/search/crime/_search';
-  getCount(getQuery(array),url);
 });
 
 // POST method route
 app.post('/', function(req, res) {
-  res.send('POST request to the homepage');
-})
+  var data = [];
+  var options = {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json'
+    },
+    uri: 'http://35.196.134.152/search/crime/_search',
+    body: JSON.parse(getQuery(req.body)),
+    json: true // Automatically stringifies the body to JSON
+  };
+  var promise1 = rp(options)
+    .then(function(parse) {
+      data.push(parse);
+    })
+    .catch(function(err) {
+      console.log(err); // POST failed...
+    });
+
+Promise.all([promise1]).then(function(values) {
+    res.send(data);
+  });
+});
 var fs = require('fs');
 
 function write(data) {
