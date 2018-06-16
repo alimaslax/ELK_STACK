@@ -5,6 +5,7 @@ var rp = require('request-promise');
 var bodyParser = require('body-parser');
 app.use(bodyParser.json()); // support json encoded bodies
 app.use(bodyParser.urlencoded({ extended: true })); // support encoded bodies
+app.listen(3000, () => console.log('Example app listening on port 3000!'));
 
 //enable cors
 app.use(function(req, res, next) {
@@ -12,6 +13,9 @@ app.use(function(req, res, next) {
   res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
   next();
 });
+
+//global variables
+var data=[];
 function getQuery(arr) {
   var must='';
   if (Array.isArray(arr)){
@@ -42,15 +46,44 @@ function getQuery(arr) {
   else
     return '{ "size": 0, "aggs": { "sum": { "terms": { "field": "'+arr+'.keyword", "size":500 } } } }';
 }
-app.listen(3000, () => console.log('Example app listening on port 3000!'));
-
+var getCount = function (req){
+var query = {
+  "size": 0,
+"aggs": {
+          "sum": {
+            "terms": {
+              "field": req+".keyword",
+              "size":500
+            }
+          }
+}};
+var options = {
+    method: 'POST',
+    headers: {'content-type' : 'application/json'},
+    uri: 'http://35.196.134.152/search/crime/_search',
+    body: query,
+    json: true // Automatically stringifies the body to JSON
+};
+return rp(options)
+    .then(function (parse) {
+      data.push(parse.aggregations.sum.buckets);
+       return(parse.aggregations.sum.buckets);
+    })
+    .catch(function (err) {
+        // POST failed...
+    });
+}
+function promise(x) { 
+  return new Promise(resolve => {
+    resolve(getCount(x));
+  });
+}
 // GET method route
 app.get('/', function(req, res) {
 });
 
 // POST method route
 app.post('/', function(req, res) {
-  var data = [];
   var options = {
     method: 'POST',
     headers: {
@@ -67,10 +100,13 @@ app.post('/', function(req, res) {
     .catch(function(err) {
       console.log(err); // POST failed...
     });
+ var promise2 = promise("SHOOTING").then((val) => {});
 
-Promise.all([promise1]).then(function(values) {
-    res.send(data);
-  });
+  Promise.all([promise1, promise2]).then((val) => {
+    write(data);
+   res.send(data);
+   data=[];
+   });
 });
 var fs = require('fs');
 
