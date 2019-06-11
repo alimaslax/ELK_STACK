@@ -1,0 +1,20 @@
+{
+    "query": {
+    "bool": {
+      "must": [
+        {
+          "match": {
+            "playDispNm": "Lebron James"
+          }
+        },
+        {
+          "match": {
+            "opptAbbr": "BOS"
+          }
+        }
+      ]
+    }
+    }
+}
+
+--> Returns all fields of player name facing specific oppointment
